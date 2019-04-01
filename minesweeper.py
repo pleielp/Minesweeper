@@ -31,6 +31,7 @@ class MineSweeper(object):
         self.number_of_mine = None
         self.opening_board = None
         self.opening_boards = None
+        self.on_reset = 0
         self.display.blit(self.newgame, (0, 0))
 
     def levelSelect(self, level):
@@ -107,9 +108,11 @@ class MineSweeper(object):
 
     def preReset(self):
         self.display.blit(self.game_reset, (235, 11))
+        self.on_reset = 1
 
     def postReset(self):
         self.init()
+        self.on_reset = 0
 
     def newGame(self, x, y):
         print('newGame')
@@ -255,19 +258,23 @@ class MineSweeper(object):
 
                 self.Boards[y][x].checked = 0
 
-    def dragging_left(self, x, y):
-        x_, y_ = self.opening_board[0], self.opening_board[1]
-        if self.Boards[y_][x_].state != 'opened':
-            self.display.blit(self.unopened, (16 * x_ + 8, 16 * y_ + 50))
-            self.Boards[y_][x_].state = 'unopened'
-        self.searchingMine(x, y)
-
-    def dragging_center(self, x, y):
-        for x_, y_ in self.opening_boards:
+    def dragging_left(self, x=None, y=None):
+        if self.opening_board:
+            x_, y_ = self.opening_board[0], self.opening_board[1]
             if self.Boards[y_][x_].state != 'opened':
                 self.display.blit(self.unopened, (16 * x_ + 8, 16 * y_ + 50))
                 self.Boards[y_][x_].state = 'unopened'
-        self.searchingBoard(x, y)
+        if x is not None and y is not None:
+            self.searchingMine(x, y)
+
+    def dragging_center(self, x=None, y=None):
+        if self.opening_boards:
+            for x_, y_ in self.opening_boards:
+                if self.Boards[y_][x_].state != 'opened':
+                    self.display.blit(self.unopened, (16 * x_ + 8, 16 * y_ + 50))
+                    self.Boards[y_][x_].state = 'unopened'
+        if x is not None and y is not None:
+            self.searchingBoard(x, y)
 
     def timePassed(self):
         def timeShow(num_idx, pos_idx):
@@ -331,8 +338,10 @@ def main():
             if event.type == 5 and 234 < event.pos[0] < 261 and 10 < event.pos[1] < 37:
                 minesweeper.preReset()
 
-            if event.type == 6 and 234 < event.pos[0] < 261 and 10 < event.pos[1] < 37:
-                minesweeper.postReset()
+            if minesweeper.on_reset:
+                if event.type == 6:
+                    minesweeper.postReset()
+                continue
 
             if not minesweeper.failed and not minesweeper.win:
 
@@ -366,6 +375,12 @@ def main():
 
                         if event.type == pygame.MOUSEBUTTONUP and event.button == 2:
                             minesweeper.searchedBoard(x, y)
+
+                    else:
+                        if minesweeper.opening_board is not None:
+                            minesweeper.dragging_left()
+                        if minesweeper.opening_boards is not None:
+                            minesweeper.dragging_center()
 
             else:
                 minesweeper.game_exit()
